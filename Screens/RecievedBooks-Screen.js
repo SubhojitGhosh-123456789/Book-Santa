@@ -12,28 +12,26 @@ import firebase from "firebase";
 import MyHeader from "../components/AppHeader";
 import { ScrollView } from "react-native-gesture-handler";
 
-export default class TradeScreen extends React.Component {
+export default class RecievedBooksScreen extends React.Component {
   constructor() {
     super();
     this.state = {
       list: [],
     };
-    this.requestRef = null;
+    this.recieveRef = null;
   }
 
-  getRequestedBooksList = async () => {
-    this.requestRef = firebase
+  getRecievedBooksList = async () => {
+    this.recieveRef = firebase
       .firestore()
-      .collection("RequestedBooks")
+      .collection("RecievedBooks")
       .onSnapshot((snapshot) => {
-        var requestedBookList = snapshot.docs.map((document) =>
-          document.data()
-        );
-        this.setState({ list: requestedBookList });
+        var recievedBookList = snapshot.docs.map((document) => document.data());
+        this.setState({ list: recievedBookList });
       });
   };
   componentDidMount() {
-    this.getRequestedBooksList();
+    this.getRecievedBooksList();
   }
 
   keyExtractor = (item, index) => index.toString();
@@ -43,20 +41,7 @@ export default class TradeScreen extends React.Component {
       <ListItem key={i} bottomDivider>
         <ListItem.Content>
           <ListItem.Title>{item.BookName}</ListItem.Title>
-          <ListItem.Subtitle>{item.Reason}</ListItem.Subtitle>
-          <Text>Request by {item.UserName}</Text>
-          <View>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => {
-                this.props.navigation.navigate("DetailsScreen", {
-                  Details: item,
-                });
-              }}
-            >
-              <Text style={{ color: "white" }}>Donate</Text>
-            </TouchableOpacity>
-          </View>
+          <ListItem.Subtitle>{item.BookStatus}</ListItem.Subtitle>
         </ListItem.Content>
       </ListItem>
     );
@@ -65,7 +50,7 @@ export default class TradeScreen extends React.Component {
   render() {
     return (
       <View style={styles.container}>
-        <MyHeader title="Donate Requests" navigation={this.props.navigation} />
+        <MyHeader title="Recieved Books" navigation={this.props.navigation} />
         <ScrollView>
           <View style={{ flex: 1 }}>
             {this.state.list.length === 0 ? (

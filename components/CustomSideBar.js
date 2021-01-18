@@ -7,21 +7,70 @@ import {
   ToastAndroid,
   Image,
 } from "react-native";
+import { Avatar } from 'react-native-elements';
 import { DrawerItems } from "react-navigation-drawer";
 import SettingsScreen from "../Screens/Settings-Screen";
 import MyDonationsScreen from "../Screens/MyDonations-Screen";
 import db from "../config";
 import firebase from "firebase";
+import * as ImagePicker from 'expo-image-picker';
 
 export default class SideBar extends React.Component {
+
+  constructor(){
+    super();
+    this.state={
+      image: '#',
+      userId: firebase.auth().currentUser.email,
+    }
+  }
+
+  selectPicture = async () => {
+    const {cancelled,uri} = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!cancelled) {
+      this.uploadImage(uri, this.state.userId);
+      this.setState({image: uri})
+    }
+  };
+
+  uploadImage = async(uri, imageName)=>{
+    var response = await fetch(uri);
+    var blob = await response.blob();
+
+    var ref = firebase.storage().ref().child('UserProfiles/'+imageName);
+    return ref.put(blob).then((response)=>{
+       this.fetchImage(imageName);
+    });
+
+  }
+
+  fetchImage = (imageName)=>{
+    var storageRef = firebase.storage().ref().child('UserProfiles/'+imageName);
+    storageRef.getDownloadURL().then((url)=>{
+      this.setState({image: url})
+    }).catch((error)=>{
+      this.setState({image: '#'})
+    })
+  }
+
+  componentDidMount(){
+    this.fetchImage(this.state.userId)
+  }
+
   render() {
-    console.log(firebase.auth().currentUser.displayName);
     return (
       <View style={{ flex: 1 }}>
         <Image
           source={require("../assets/draw.jpg")}
           style={{ width: "100%", height: 200 }}
         />
+        <Avatar rounded source = {{uri: this.state.image}} size = 'medium' onPress = {()=>{this.selectPicture()}} containerStyle = {styles.imageContainer} showEditButton/>
         <View style={{ backgroundColor: "#1182C6" }}>
           <Text style={styles.displayText}>
             Hello {firebase.auth().currentUser.displayName}
@@ -85,4 +134,9 @@ const styles = StyleSheet.create({
     color: "white",
     margin: 20,
   },
+  imageContainer:{
+     backgroundColor: "#1182C6",
+     borderRadius:100,
+     alignSelf:'center'
+  }
 });

@@ -8,9 +8,15 @@ export const AppStackNavigator = createStackNavigator(
   {
     TradeScreen: {
       screen: TradeScreen,
+      navigationOptions: {
+        headerShown: false,
+      },
     },
     DetailsScreen: {
       screen: RecieverDetailsScreen,
+      navigationOptions: {
+        headerShown: false,
+      },
     },
   },
   {

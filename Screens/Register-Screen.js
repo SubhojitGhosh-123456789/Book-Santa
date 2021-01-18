@@ -216,6 +216,11 @@ export default class RegisterScreen extends React.Component {
         "Please Enter Your Details to Signup",
         ToastAndroid.SHORT
       );
+    } else if (this.state.email === "" || this.state.password === "") {
+      ToastAndroid.show(
+        "Please Enter Your Details to Signup",
+        ToastAndroid.SHORT
+      );
     } else {
       this.setState({ isLoading: true });
 
@@ -226,6 +231,7 @@ export default class RegisterScreen extends React.Component {
         Phone: this.state.phone,
         Address: this.state.address,
         UserID: this.createUserId(),
+        isBookRequestActive: false,
       });
 
       firebase

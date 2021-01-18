@@ -5,7 +5,6 @@ import { createAppContainer, createSwitchNavigator } from "react-navigation";
 import SplashScreen from "./Screens/Splash-Screen";
 import RegisterScreen from "./Screens/Register-Screen";
 import { AppDrawer } from "./components/AppDrawerNavigation";
-import DetailsScreen from "./Screens/DetailsScreen";
 
 export default class App extends React.Component {
   render() {

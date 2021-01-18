@@ -1,77 +1,163 @@
 import React, { Component } from "react";
 import {
-  Text,
   View,
-  StyleSheet,
+  Text,
   FlatList,
+  StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import db from "../config";
+import { Card, Icon, ListItem, Header } from "react-native-elements";
+import db from "../config.js";
 import firebase from "firebase";
-import { ListItem, Header, Card } from "react-native-elements";
 import { ScrollView } from "react-native-gesture-handler";
+import MyHeader from "../components/AppHeader";
 
 export default class MyDonationsScreen extends React.Component {
+  static navigationOptions = { header: null };
+
   constructor() {
     super();
     this.state = {
-      list: [],
+      userId: firebase.auth().currentUser.email,
+      donorName: firebase.auth().currentUser.displayName,
+      allDonations: [],
     };
-    this.donateRef = null;
   }
 
-  getDonatedBooksList = async () => {
-    this.donateRef = firebase
+  sendBook = async (bookDetails) => {
+    console.log(bookDetails);
+    if (bookDetails.RequestStatus === "Donor Interested") {
+      var requestStatus = "Sent Book";
+      await firebase
+        .firestore()
+        .collection("DonateBooks")
+        .where("DonorEmail", "==", bookDetails.DonorEmail)
+        .where("RequestID", "==", bookDetails.RequestID)
+        .get()
+        .then((snapshot) => {
+          snapshot.forEach((doc) => {
+            console.log(doc.id);
+            firebase.firestore().collection("DonateBooks").doc(doc.id).update({
+              RequestStatus: requestStatus,
+            });
+          });
+        });
+      this.sendNotification(bookDetails, bookDetails.RequestStatus);
+    } else {
+      alert("Changing Request Status To Donor Interested");
+      var requestStatus = "Donor Interested";
+      await firebase
+        .firestore()
+        .collection("DonateBooks")
+        .where("DonorEmail", "==", bookDetails.DonorEmail)
+        .where("RequestID", "==", bookDetails.RequestID)
+        .get()
+        .then((snapshot) => {
+          snapshot.forEach((doc) => {
+            console.log(doc.id);
+            firebase.firestore().collection("DonateBooks").doc(doc.id).update({
+              RequestStatus: requestStatus,
+            });
+          });
+        });
+
+      this.sendNotification(bookDetails, bookDetails.RequestStatus);
+    }
+  };
+
+  sendNotification = async (bookDetails, requestStatus) => {
+    var requestId = bookDetails.RequestedEmail;
+    var donorId = bookDetails.DonorEmail;
+
+    await firebase
+      .firestore()
+      .collection("Notifications")
+      .where("DonorEmail", "==", donorId)
+      .where("RequestedEmail", "==", requestId)
+      .get()
+      .then((snapshot) => {
+        snapshot.forEach((doc) => {
+          var message = "";
+          if (requestStatus === "Sent Book") {
+            message =
+              this.state.donorName + " has Shown Interest In Donating The Book";
+          } else {
+            message = this.state.donorName + " has Sent You The Book";
+          }
+          firebase.firestore().collection("Notifications").doc(doc.id).update({
+            Message: message,
+            NotificationStatus: "Unread",
+            Date: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        });
+      });
+  };
+
+  getAllDonations = async () => {
+    await firebase
       .firestore()
       .collection("DonateBooks")
+      .where("DonorEmail", "==", this.state.userId)
       .onSnapshot((snapshot) => {
-        var donatedBookList = snapshot.docs.map((document) => document.data());
-        this.setState({ list: donatedBookList });
+        var allDonations = snapshot.docs.map((document) => document.data());
+        this.setState({
+          allDonations: allDonations,
+        });
       });
   };
   componentDidMount() {
-    this.getDonatedBooksList();
+    this.getAllDonations();
   }
 
   keyExtractor = (item, index) => index.toString();
 
-  renderItem = ({ item, i }) => {
-    return (
-      <ListItem key={i} bottomDivider>
-        <ListItem.Content>
-          <ListItem.Title>Book Name: {item.BookName}</ListItem.Title>
-          <Card.Divider />
-          <Text>Requested By: {item.RequestedBy}</Text>
-          <Text>Requested Email: {item.RequestedEmail}</Text>
-          <Card.Divider />
-          <Text>Donated By:{item.DonatedBy}</Text>
-          <Text>Donated Email: {item.DonatedEmail}</Text>
-          <Card.Divider />
-          <Text>Request Status: {item.RequestStatus}</Text>
-        </ListItem.Content>
-      </ListItem>
-    );
-  };
+  renderItem = ({ item, i }) => (
+    <ListItem key={i} bottomDivider>
+      <ListItem.Content>
+        <ListItem.Title>{item.BookName}</ListItem.Title>
+        <ListItem.Subtitle>Requested By: {item.RequestedBy}</ListItem.Subtitle>
+        <ListItem.Subtitle>
+          Request Status: {item.RequestStatus}
+        </ListItem.Subtitle>
+      </ListItem.Content>
+      <View>
+        <Icon
+          name="book"
+          type="font-awesome"
+          color="magenta"
+          size={50}
+          containerStyle={{ marginBottom: 20 }}
+        />
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => {
+            this.sendBook(item);
+          }}
+        >
+          <Text style={{ color: "#ffff" }}>Send Book</Text>
+        </TouchableOpacity>
+      </View>
+    </ListItem>
+  );
 
   render() {
     return (
       <View style={styles.container}>
-        <Header
-          centerComponent={{
-            text: "Donated Books",
-            style: { color: "white", fontSize: 17, marginTop: 10 },
-          }}
-        />
+        <MyHeader title="My Donations" navigation={this.props.navigation} />
         <ScrollView>
           <View style={{ flex: 1 }}>
-            {this.state.list.length === 0 ? (
-              <View style={styles.subContainer}>
-                <Text>Please Check Your Internet Connection</Text>
+            {this.state.allDonations.length === 0 ? (
+              <View style={styles.subtitle}>
+                <Text
+                  style={{ fontSize: 30, alignSelf: "center", color: "white" }}
+                >
+                  No Donations
+                </Text>
               </View>
             ) : (
               <FlatList
                 keyExtractor={this.keyExtractor}
-                data={this.state.list}
+                data={this.state.allDonations}
                 renderItem={this.renderItem}
               />
             )}
@@ -103,8 +189,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   button: {
-    marginTop: 20,
-    width: 200,
+    width: 100,
     backgroundColor: "#fb5b5a",
     height: 40,
     borderRadius: 5,
